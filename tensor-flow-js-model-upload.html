@@ -1,0 +1,271 @@
+<html>
+<head>
+<script src="static/model-provider.js"></script>
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+</head>
+<br>
+
+<br>
+<br>
+<br>
+
+
+<div class="container">
+<div class="row">
+    <div class="col-sm">
+      <div class="card" style="width: 26rem;">
+	    <div class="card-body">
+	      <h5 class="card-title">Use Model</h5>
+	  		<div class="panel panel-default">
+	  		  <div class="panel-body">
+	  			<div class="form-group">
+	  			  <span class="label label-info">Inference ID:</span>
+	  			  <input type="number" class="form-control input-lg" id="prediction_feature_id">
+	  			  <br>
+	  			  <span class="label label-warning">Model Prediction:</span>
+	  			  <input readonly type="text" class="form-control input-lg" id="prediction_label_id">
+	  			</div>
+	  			<button type="button" class="btn btn-info" onclick="inference();">Get Prediction</button>
+	  		  </div>
+	  		</div>
+	  	</div>
+      </div>
+    </div>
+    <div class="col-sm">
+      <div class="card" style="width: 26rem;">
+	    <div class="card-body">
+	    <h5 class="card-title">Train Model</h5>
+		 <div class="panel panel-default">
+			<div class="panel-body">
+			  <div class="form-group">
+				<span class="label label-info">Inference ID:</span>
+				<input type="number" class="form-control input-lg" id="train_feature_id">
+				<br>
+				<span class="label label-warning">Private Data:</span>
+				<input type="number" min="0" max="1" placeholder="1 = good, 0 = bad" class="form-control input-lg" id="train_label_id">
+			  </div>
+              <div id="waiting_spinner" class="spinner-border" role="status"  style="display: none;"><span class="sr-only"></span></div>
+			  <button id="train_update_button_id" type="button" class="btn btn-warning" onclick="trainUpdateModel();">Train/Update Model</button>
+			</div>
+		</div>
+	  </div>
+	</div>
+    </div>
+  </div>
+</div>
+
+
+<script type="text/javascript">
+function inference(){
+  (async () => {
+    federatedModel = await getFederatedModel();
+    feature = $('#prediction_feature_id').val();
+    label = federatedModel.predict(tf.tensor1d([Number(feature)]));
+    $('#prediction_label_id').val(label);
+  })();
+}
+
+function getFederatedModel(){
+  return tf.loadLayersModel('<your-s3-bucket-url-goes-here>/model.json?no_cache='+Math.random());
+}
+
+function trainUpdateModel(){
+  $("#train_update_button_id").hide();
+  $("#waiting_spinner").show();
+  (async () => {
+    federatedModel = await getFederatedModel();
+    federatedModelWeights = federatedModel.getWeights();
+
+    deviceXmodel = getTensorFlowJsModel();
+    const feature = tf.tensor1d([Number($('#train_feature_id').val())]);
+    const label = tf.tensor1d([Number($('#train_label_id').val())]);
+    await deviceXmodel.fit(feature, label, {epochs: getEpochs()});
+
+    deviceXmodelWeights = deviceXmodel.getWeights();
+    averaged_weights=[]
+    for(var i=0;i<deviceXmodelWeights.length;i++){
+      layerWeightsMean = tf.stack([deviceXmodelWeights[i],federatedModelWeights[i]]).mean(axis=0);
+      averaged_weights.push(layerWeightsMean);
+    }
+    deviceXmodel.setWeights(averaged_weights);
+
+    deviceXmodel.save(tf.io.http(document.URL+'upload', {method: 'PUT'}));
+    $("#waiting_spinner").hide();
+    $("#train_update_button_id").show();
+
+  })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //console.log(json);
+    //const tmp = await tf.loadLayersModel(json);
+    //tmp.summary();
+
+
+
+
+
+
+    // deviceYmodel = getTensorFlowJsModel();
+    // const x = tf.tensor1d([4,5,6]);
+    // const y = tf.tensor1d([0,1,1]);
+    // await deviceYmodel.fit(x, y, {epochs: getEpochs()});
+    // console.log("");
+    // console.log("device Y model inference");
+    // deviceYmodel.predict(tf.tensor1d([1])).print();
+    // deviceYmodel.predict(tf.tensor1d([2])).print();
+    // deviceYmodel.predict(tf.tensor1d([3])).print();
+    // deviceYmodel.predict(tf.tensor1d([4])).print();
+    // deviceYmodel.predict(tf.tensor1d([5])).print();
+    // deviceYmodel.predict(tf.tensor1d([6])).print();
+
+    // deviceXmodelWeights = deviceXmodel.getWeights();
+    // deviceYmodelWeights = deviceYmodel.getWeights();
+
+    // averaged_weights=[]
+    // for(var i=0;i<deviceXmodelWeights.length;i++){
+    //   layerWeightsMean = tf.stack([deviceXmodelWeights[i],deviceYmodelWeights[i]]).mean(axis=0);
+    //   averaged_weights.push(layerWeightsMean);
+    // }
+
+    // console.log("");
+    // console.log("federated model inference");
+    // federatedModel = getTensorFlowJsModel();
+    // federatedModel.setWeights(averaged_weights);
+    // federatedModel.predict(tf.tensor1d([1])).print();
+    // federatedModel.predict(tf.tensor1d([2])).print();
+    // federatedModel.predict(tf.tensor1d([3])).print();
+    // federatedModel.predict(tf.tensor1d([4])).print();
+    // federatedModel.predict(tf.tensor1d([5])).print();
+    // federatedModel.predict(tf.tensor1d([6])).print();
+
+
+
+
+
+
+
+  //mean.print();
+
+  //console.log(deviceXmodelWeights);
+
+  //console.log(modelWeights);
+  //modelWeightsDelta = tf.sub(modelWeights,deviceXmodelWeights);
+  //console.log(modelWeightsDelta);
+
+
+  //return;
+
+  // var model = getTensorFlowJsModel();
+  // const x = tf.tensor1d([3,4]);
+  // const y = tf.tensor1d([0,1]);
+
+  // model.fit(x, y, {epochs: getEpochs()}).then((deviceXmodel) => {
+  //   model.predict(tf.tensor1d([1])).print();
+  //   model.predict(tf.tensor1d([2])).print();
+  //   model.predict(tf.tensor1d([3])).print();
+  //   model.predict(tf.tensor1d([4])).print();
+
+  //   var deviceXmodelWeights = deviceXmodel.getWeights();
+  //   var modelWeights = model.getWeights();
+  //   var modelWeightsDelta = tf.sub(model,deviceXmodel);
+  //   var modelToUpload = getTensorFlowJsModel();
+  //   modelToUpload.setWeights(modelWeightsDelta);
+
+
+  //   (async () => {
+  //     const saveResults = await model.save('localstorage://my-model-1');
+  //     const loadedModel = await tf.loadLayersModel('localstorage://my-model-1');
+  //     loadedModel.predict(tf.tensor1d([1])).print();
+  //   })();
+
+  //   const saveResult = model.save(tf.io.http('http://localhost:5000/upload', {method: 'PUT'}));
+
+
+  // });
+    //print(model.getLayer(1))
+    //var config = model.getConfig();
+    //console.log('weights');
+    //console.log(weights);
+    //console.log(model.summary())
+    //console.log('config')
+    //console.log(config);
+    //model.trainable_=false;
+    //console.log(saveResult);
+
+    //tf.stack([deviceXmodelWeights[0],modelWeights[0]]).mean(axis=0).print();
+
+    // const a = tf.tensor1d([1, 2]);
+    // const b = tf.tensor1d([3, 4]);
+    // const c = tf.tensor1d([5, 6]);
+    // tf.stack([a, b, c]).mean(axis=0).print();
+
+    // deviceXmodel.setWeights(tf.stack([deviceXmodelWeights,modelWeights]).mean(axis=0));
+    // deviceXmodel.predict(tf.tensor1d([1])).print();
+    // deviceXmodel.predict(tf.tensor1d([2])).print();
+    // deviceXmodel.predict(tf.tensor1d([3])).print();
+    // deviceXmodel.predict(tf.tensor1d([4])).print();
+
+    //var modelToUpload = tf.sequential();
+    //modelToUpload.add(tf.layers.dense({units: 1, inputShape: [1], activation: 'sigmoid'}));
+    //modelToUpload.setWeights(modelWeightsDelta);
+}
+</script>
+
+</html>
